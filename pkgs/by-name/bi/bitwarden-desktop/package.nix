@@ -46,6 +46,13 @@ in buildNpmPackage rec {
   postPatch = ''
     # remove code under unfree license
     rm -r bitwarden_license
+
+    # The native messaging manifest file (com.8bit.bitwarden.json) needs to
+    # have the path to bitwarden-desktop, but since we use our own electron,
+    # this.exePath == app.getPath('exe') == argv[0] => just electron.
+    # Now it points to the full wrapper script.
+    substituteInPlace apps/desktop/src/main/native-messaging.main.ts \
+      --replace-fail "return this.exePath;" "return \"$out/bin/bitwarden\";"
   '';
 
   nodejs = nodejs_20;
@@ -93,15 +100,6 @@ in buildNpmPackage rec {
     gtk3
     libsecret
   ];
-
-  # The native messaging manifest file (com.8bit.bitwarden.json) needs to
-  # have the path to bitwarden-desktop, but since we use our own electron,
-  # this.exePath == app.getPath('exe') == argv[0] => just electron.
-  # Now it points to the full wrapper script.
-  postPatch = ''
-    substituteInPlace apps/desktop/src/main/native-messaging.main.ts \
-      --replace-fail "return this.exePath;" "return \"$out/bin/bitwarden\";"
-  '';
 
   # node-argon2 builds with LTO, but that causes missing symbols. So disable it
   # and rebuild. Then we need to copy it into the build output for
