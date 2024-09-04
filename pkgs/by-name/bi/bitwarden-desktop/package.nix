@@ -40,6 +40,7 @@ in buildNpmPackage rec {
 
   patches = [
     ./electron-builder-package-lock.patch
+    ./dont-auto-setup-biometrics.patch
   ];
 
   postPatch = ''
@@ -92,6 +93,15 @@ in buildNpmPackage rec {
     gtk3
     libsecret
   ];
+
+  # The native messaging manifest file (com.8bit.bitwarden.json) needs to
+  # have the path to bitwarden-desktop, but since we use our own electron,
+  # this.exePath == app.getPath('exe') == argv[0] => just electron.
+  # Now it points to the full wrapper script.
+  postPatch = ''
+    substituteInPlace apps/desktop/src/main/native-messaging.main.ts \
+      --replace-fail "return this.exePath;" "return \"$out/bin/bitwarden\";"
+  '';
 
   # node-argon2 builds with LTO, but that causes missing symbols. So disable it
   # and rebuild. Then we need to copy it into the build output for
@@ -173,6 +183,10 @@ in buildNpmPackage rec {
       --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}" \
       --set-default ELECTRON_IS_DEV 0 \
       --inherit-argv0
+
+    # The polkit policy file should be kept up to date with the one bitwarden-desktop source code; see
+    # https://github.com/bitwarden/clients/blob/76021b48171b5471a4872cb9d9404c50fbc2fe05/apps/desktop/src/platform/main/biometric/biometric.unix.main.ts#L12-L27
+    install -Dm644 ${./com.bitwarden.Bitwarden.policy} $out/share/polkit-1/actions/com.bitwarden.Bitwarden.policy
 
     pushd apps/desktop/resources/icons
     for icon in *.png; do
