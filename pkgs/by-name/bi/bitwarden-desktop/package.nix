@@ -182,9 +182,12 @@ in buildNpmPackage rec {
       --set-default ELECTRON_IS_DEV 0 \
       --inherit-argv0
 
-    # The polkit policy file should be kept up to date with the one bitwarden-desktop source code; see
-    # https://github.com/bitwarden/clients/blob/76021b48171b5471a4872cb9d9404c50fbc2fe05/apps/desktop/src/platform/main/biometric/biometric.unix.main.ts#L12-L27
-    install -Dm644 ${./com.bitwarden.Bitwarden.policy} $out/share/polkit-1/actions/com.bitwarden.Bitwarden.policy
+    # Extract the polkit policy file from the multiline string in the source code.
+    # This may break in the future but its better than copy-pasting it manually.
+    mkdir -p $out/share/polkit-1/actions/
+    pushd apps/desktop/src/platform/main/biometric
+    awk '/const polkitPolicy = `/{str=1; next} str{if (/`;/) str=0; gsub(/`;/, ""); print}' biometric.unix.main.ts > $out/share/polkit-1/actions/com.bitwarden.Bitwarden.policy
+    popd
 
     pushd apps/desktop/resources/icons
     for icon in *.png; do
