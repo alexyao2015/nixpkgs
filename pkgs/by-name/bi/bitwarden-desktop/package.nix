@@ -186,7 +186,7 @@ in buildNpmPackage rec {
     # This may break in the future but its better than copy-pasting it manually.
     mkdir -p $out/share/polkit-1/actions/
     pushd apps/desktop/src/platform/main/biometric
-    awk '/const polkitPolicy = `/{str=1; next} str{if (/`;/) str=0; gsub(/`;/, ""); print}' biometric.unix.main.ts > $out/share/polkit-1/actions/com.bitwarden.Bitwarden.policy
+    awk '/const polkitPolicy = `/{gsub(/^.*`/, ""); print; str=1; next} str{if (/`;/) str=0; gsub(/`;/, ""); print}' biometric.unix.main.ts > $out/share/polkit-1/actions/com.bitwarden.Bitwarden.policy
     popd
 
     pushd apps/desktop/resources/icons
