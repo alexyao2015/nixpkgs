@@ -47,12 +47,15 @@ in buildNpmPackage rec {
     # remove code under unfree license
     rm -r bitwarden_license
 
-    # The native messaging manifest file (com.8bit.bitwarden.json) needs to
-    # have the path to bitwarden-desktop, but since we use our own electron,
-    # this.exePath == app.getPath('exe') == argv[0] => just electron.
-    # Now it points to the full wrapper script.
-    substituteInPlace apps/desktop/src/main/native-messaging.main.ts \
-      --replace-fail "return this.exePath;" "return \"$out/bin/bitwarden\";"
+    # The native messaging manifest file (com.8bit.bitwarden.json) and
+    # the generated autostart desktop entry need to have the path to
+    # bitwarden-desktop, but since we use our own electron,
+    # app.getPath("exe") == argv[0] => just electron.
+    # This replaces all instances of app.getPath("exe") with the path
+    # to our wrapper script.
+    pushd apps/desktop/src/
+    find . -type f -name '*.ts' -exec sed -i "s|app.getPath(\"exe\")|\"$out/bin/bitwarden\"|" {} \;
+    popd
   '';
 
   nodejs = nodejs_20;
